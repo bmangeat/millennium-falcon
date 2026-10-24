@@ -66,6 +66,6 @@ try {
   main();
 } catch (error) {
   // The logger may not exist yet (invalid env), so fall back to stderr.
-  console.error(error instanceof Error ? error.message : error);
+  console.error(error instanceof Error ? (error.stack ?? error.message) : error);
   process.exit(1);
 }
