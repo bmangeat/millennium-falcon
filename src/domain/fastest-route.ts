@@ -84,7 +84,7 @@ export class FastestRouteSolver {
   }
 
   private explore(rows: readonly RouteRow[]): void {
-    const { departure } = this;
+    const { departure, autonomy } = this;
 
     // Route longer than autonomy can not be fulfilled, so we filter them out
     const usableRows = rows.filter((row) => row.travelTime <= autonomy);
@@ -94,10 +94,10 @@ export class FastestRouteSolver {
     // totalWeight: sum of all travel times in the universe
     // Will cover the case of a autonomy greater than the total weight of all edges in the universe
     const totalWeight = usableRows.reduce((sum, row) => sum + row.travelTime, 0);
-    const autonomy = Math.min(this.autonomy, totalWeight);
+    const effectiveAutonomy = Math.min(this.autonomy, totalWeight);
 
     // If the total weight of all edges is less than the autonomy, we can reach every planet from any other planet
-    const stateCount = graph.size * (autonomy + 1);
+    const stateCount = graph.size * (effectiveAutonomy + 1);
     if (stateCount > MAX_STATES) {
       throw new Error(
         `State space too large (${stateCount} > ${MAX_STATES}): reduce autonomy or universe size`,
@@ -121,9 +121,9 @@ export class FastestRouteSolver {
       queue.push({ planet, fuel, duration, key });
     };
 
-    const startKey = stateKey(departure, autonomy);
+    const startKey = stateKey(departure, effectiveAutonomy);
     this.distances.set(startKey, 0);
-    queue.push({ planet: departure, fuel: autonomy, duration: 0, key: startKey });
+    queue.push({ planet: departure, fuel: effectiveAutonomy, duration: 0, key: startKey });
 
     while (!queue.isEmpty()) {
       const current = queue.pop();
@@ -136,11 +136,23 @@ export class FastestRouteSolver {
 
       for (const edge of graph.get(current.planet) ?? []) {
         if (edge.weight > current.fuel) continue;
-        relax(current, 'travel', edge.to, current.fuel - edge.weight, current.duration + edge.weight);
+        relax(
+          current,
+          'travel',
+          edge.to,
+          current.fuel - edge.weight,
+          current.duration + edge.weight,
+        );
       }
 
-      if (current.fuel < autonomy) {
-        relax(current, 'refuel', current.planet, autonomy, current.duration + REFUEL_DURATION);
+      if (current.fuel < effectiveAutonomy) {
+        relax(
+          current,
+          'refuel',
+          current.planet,
+          effectiveAutonomy,
+          current.duration + REFUEL_DURATION,
+        );
       }
     }
   }
