@@ -138,3 +138,49 @@ describe('unknown routes', () => {
     expect(errorCode(res)).toBe('ROUTE_NOT_FOUND');
   });
 });
+
+describe('x-request-id propagation', () => {
+  it('sets x-request-id on a successful response', async () => {
+    const res = await request(buildApp()).post('/compute').send({ arrival: 'Endor' });
+    expect(res.status).toBe(200);
+    expect(res.headers['x-request-id']).toMatch(/^[\w.-]{1,128}$/);
+  });
+
+  it('sets x-request-id on a 4xx error response', async () => {
+    const res = await request(buildApp()).post('/compute').send({});
+    expect(res.status).toBe(400);
+    expect(res.headers['x-request-id']).toMatch(/^[\w.-]{1,128}$/);
+  });
+
+  it('sets x-request-id on a 5xx error response', async () => {
+    const routeFinder: RouteFinder = {
+      findFastestRoute: vi.fn().mockImplementation(() => {
+        throw new Error('unexpected');
+      }),
+    };
+    const res = await request(buildApp({ routeFinder }))
+      .post('/compute')
+      .send({ arrival: 'Endor' });
+    expect(res.status).toBe(500);
+    expect(res.headers['x-request-id']).toMatch(/^[\w.-]{1,128}$/);
+  });
+
+  it('echoes back a valid caller-supplied x-request-id', async () => {
+    const id = 'my-trace-id-123';
+    const res = await request(buildApp())
+      .post('/compute')
+      .set('x-request-id', id)
+      .send({ arrival: 'Endor' });
+    expect(res.headers['x-request-id']).toBe(id);
+  });
+
+  it('generates a new id when the caller-supplied x-request-id is invalid', async () => {
+    const malicious = '<script>alert(1)</script>';
+    const res = await request(buildApp())
+      .post('/compute')
+      .set('x-request-id', malicious)
+      .send({ arrival: 'Endor' });
+    expect(res.headers['x-request-id']).not.toBe(malicious);
+    expect(res.headers['x-request-id']).toMatch(/^[\w.-]{1,128}$/);
+  });
+});

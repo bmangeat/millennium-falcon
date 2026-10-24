@@ -105,7 +105,7 @@ src/
   controllers/            HTTP <-> service translation
   services/               business logic (route computation)
   repositories/           data access (SQLite, read-only)
-  domain/                 shared types
+  domain/                 shared types and pure algorithms
   schemas/                request validation schemas
   middlewares/            error handling, 404
   lib/                    logger, helpers
@@ -158,5 +158,29 @@ Dependabot keeps npm, Docker and Actions dependencies up to date.
 
 ### Route computation
 
-_To complete once implemented: algorithm, complexity, assumptions (e.g. case sensitivity of planet
-names, refuel rules), and edge cases covered by the tests._
+The algorithm is a Dijkstra shortest-path search over an augmented state space where each node
+represents _(planet, remaining\_fuel)_ rather than just a planet. This is necessary because the
+optimal decision at a given planet depends not only on where the Falcon is, but on how much fuel it
+has left — the same planet reached with different fuel levels is a fundamentally different state.
+
+Two types of transitions are explored from each state:
+
+- **Travel**: jump to a neighbouring planet if `travelTime ≤ remaining_fuel`. Cost: `travelTime`
+  days; new fuel level: `remaining_fuel − travelTime`.
+- **Refuel**: stay at the current planet for 1 day, restoring fuel to `autonomy`. Only considered
+  when `remaining_fuel < autonomy` (refueling a full tank is never useful).
+
+Routes whose `travelTime > autonomy` are filtered out before the search begins — the Falcon can
+never make such a jump regardless of how much it refuels — which also keeps the graph small.
+
+**Complexity:** `O((V·A + E) · log(V·A))` where `V` is the number of planets, `A` the autonomy,
+and `E` the number of routes. In practice the input is tiny and the computation is instantaneous.
+
+**Assumptions:**
+
+- Planet names are compared with strict equality (case-sensitive), consistent with SQLite `TEXT`
+  semantics.
+- If several routes of equal total duration exist, the one returned is implementation-defined
+  (whichever state is dequeued first by Dijkstra).
+- The Falcon can refuel an unlimited number of times on any planet along its path.
+- A route with `travelTime = 0` is considered invalid and is rejected at the repository layer.

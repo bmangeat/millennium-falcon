@@ -27,7 +27,7 @@ export function buildGraph(rows: readonly RouteRow[]): Graph {
       !destination ||
       origin === destination ||
       !Number.isFinite(travelTime) ||
-      travelTime < 0
+      travelTime <= 0
     ) {
       throw new Error(`Invalid route row at index ${index}: ${JSON.stringify(row)}`);
     }

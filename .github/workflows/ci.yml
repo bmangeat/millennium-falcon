@@ -51,8 +51,11 @@ jobs:
         run: |
           docker run -d --name falcon -p 3000:3000 millennium-falcon-api:ci
           for i in $(seq 1 15); do
-            curl -fsS http://localhost:3000/health/ready && exit 0
+            curl -fsS http://localhost:3000/health/ready && break
             sleep 1
+            if [ "$i" -eq 15 ]; then docker logs falcon; exit 1; fi
           done
-          docker logs falcon
-          exit 1
+          curl -fsS -X POST http://localhost:3000/compute \
+            -H 'content-type: application/json' \
+            -d '{"arrival":"Endor"}' \
+            | grep -q '"route"'
