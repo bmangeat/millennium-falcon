@@ -2,6 +2,7 @@ import { buildGraph } from './graph.js';
 import { PriorityQueue } from './priority-queue.js';
 import type { RouteResult, RouteRow } from './route.js';
 
+const REFUEL_DURATION = 1;
 interface State {
   planet: string;
   fuel: number;
@@ -16,7 +17,7 @@ interface PreviousStep {
 }
 
 function stateKey(planet: string, fuel: number): string {
-  return JSON.stringify([planet, fuel]);
+  return `${fuel}:${planet}`;
 }
 
 function reconstructRoute(
@@ -58,12 +59,25 @@ export function findFastestRoute(
     };
   }
 
-  const usableRows = rows.filter((rows) => rows.travelTime <= autonomy);
-
-  const graph = buildGraph(usableRows);
+  const graph = buildGraph(rows.filter((row) => row.travelTime <= autonomy));
   const queue = new PriorityQueue<State>((left, right) => left.duration - right.duration);
   const distances = new Map<string, number>();
   const previous = new Map<string, PreviousStep>();
+
+  const relax = (
+    from: State,
+    action: PreviousStep['action'],
+    planet: string,
+    fuel: number,
+    duration: number,
+  ): void => {
+    const key = stateKey(planet, fuel);
+    if (duration >= (distances.get(key) ?? Infinity)) return;
+
+    distances.set(key, duration);
+    previous.set(key, { previousKey: from.key, action, planet });
+    queue.push({ planet, fuel, duration, key });
+  };
 
   const startKey = stateKey(departure, autonomy);
   distances.set(startKey, 0);
@@ -75,11 +89,11 @@ export function findFastestRoute(
     key: startKey,
   });
 
-  while (queue.size() > 0) {
+  while (!queue.isEmpty()) {
     const current = queue.pop();
     if (current === undefined) break;
-
     if (current.duration !== distances.get(current.key)) continue;
+
     if (current.planet === arrival) {
       return {
         route: reconstructRoute(previous, current.key, departure),
@@ -91,49 +105,11 @@ export function findFastestRoute(
 
     for (const edge of neighbors) {
       if (edge.weight > current.fuel) continue;
-
-      const nextFuel = current.fuel - edge.weight;
-      const nextDuration = current.duration + edge.weight;
-      const nextKey = stateKey(edge.to, nextFuel);
-
-      const knownDuration = distances.get(nextKey) ?? Infinity;
-
-      if (nextDuration < knownDuration) {
-        distances.set(nextKey, nextDuration);
-        previous.set(nextKey, {
-          previousKey: current.key,
-          action: 'travel',
-          planet: edge.to,
-        });
-        queue.push({
-          planet: edge.to,
-          fuel: nextFuel,
-          duration: nextDuration,
-          key: nextKey,
-        });
-      }
+      relax(current, 'travel', edge.to, current.fuel - edge.weight, current.duration + edge.weight);
     }
 
     if (current.fuel < autonomy) {
-      const nextDuration = current.duration + 1;
-      const nextKey = stateKey(current.planet, autonomy);
-
-      const knownDuration = distances.get(nextKey) ?? Infinity;
-
-      if (nextDuration < knownDuration) {
-        distances.set(nextKey, nextDuration);
-        previous.set(nextKey, {
-          previousKey: current.key,
-          action: 'refuel',
-          planet: current.planet,
-        });
-        queue.push({
-          planet: current.planet,
-          fuel: autonomy,
-          duration: nextDuration,
-          key: nextKey,
-        });
-      }
+      relax(current, 'refuel', current.planet, autonomy, current.duration + REFUEL_DURATION);
     }
   }
   return null;
