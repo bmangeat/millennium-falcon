@@ -1,0 +1,26 @@
+meta {
+  name: Compute - unknown planet
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/compute
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "arrival": "Alderaan"
+  }
+}
+
+assert {
+  res.status: eq 404
+  res.body.error.code: eq NO_ROUTE_FOUND
+}
+
+docs {
+  Alderaan is not part of the example universe, so no route can be found.
+}

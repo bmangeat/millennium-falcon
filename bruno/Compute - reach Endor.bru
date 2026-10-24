@@ -1,0 +1,32 @@
+meta {
+  name: Compute - reach Endor
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/compute
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "arrival": "Endor"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.duration: eq 8
+  res.body.route: eq ["Tatooine","Hoth","Endor"]
+}
+
+docs {
+  Computes the fastest route from the departure planet (see `config/millennium-falcon.json`) to `arrival`.
+
+  With the example universe (autonomy 6), the Falcon reaches Endor in 8 days via Hoth,
+  refueling one day on Hoth.
+
+  Responses: `200` route found, `400` invalid payload, `404` no route found, `501` computation not implemented yet.
+}

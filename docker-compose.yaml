@@ -1,0 +1,24 @@
+services:
+  app:
+    build:
+      context: .
+    image: millennium-falcon-api:latest
+    init: true
+    restart: unless-stopped
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+    volumes:
+      # Drop your own millennium-falcon.json and universe.db in ./config to change the mission.
+      - ./config:/app/config:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m

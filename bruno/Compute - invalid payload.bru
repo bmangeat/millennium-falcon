@@ -1,0 +1,24 @@
+meta {
+  name: Compute - invalid payload
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/compute
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 400
+  res.body.error.code: eq VALIDATION_ERROR
+}
+
+docs {
+  `arrival` is required and must be a non-empty string; unknown fields are rejected.
+}
