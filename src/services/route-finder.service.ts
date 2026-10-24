@@ -1,4 +1,4 @@
-import type { Route, RouteResult } from '../domain/route.js';
+import type { RouteRow, RouteResult } from '../domain/route.js';
 import { NotImplementedError } from '../errors.js';
 
 export interface RouteFinderOptions {
@@ -11,10 +11,10 @@ export interface RouteFinder {
 }
 
 export class RouteFinderService implements RouteFinder {
-  private readonly routes: readonly Route[];
+  private readonly routes: readonly RouteRow[];
   private readonly options: RouteFinderOptions;
 
-  constructor(routes: readonly Route[], options: RouteFinderOptions) {
+  constructor(routes: readonly RouteRow[], options: RouteFinderOptions) {
     this.routes = routes;
     this.options = options;
   }

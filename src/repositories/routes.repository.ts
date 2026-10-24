@@ -3,12 +3,12 @@ import { DatabaseSync } from 'node:sqlite';
 
 import { z } from 'zod';
 
-import type { Route } from '../domain/route.js';
+import type { RouteRow } from '../domain/route.js';
 import { ConfigError } from '../errors.js';
 import { formatZodError } from '../lib/zod.js';
 
 export interface RoutesRepository {
-  findAll(): Route[];
+  findAll(): RouteRow[];
   /** Cheap liveness probe of the underlying data source. */
   isHealthy(): boolean;
   close(): void;
@@ -38,7 +38,7 @@ export class SqliteRoutesRepository implements RoutesRepository {
     }
   }
 
-  findAll(): Route[] {
+  findAll(): RouteRow[] {
     let rows: unknown[];
     try {
       rows = this.db

@@ -1,4 +1,4 @@
-export interface Route {
+export interface RouteRow {
   origin: string;
   destination: string;
   travelTime: number;
