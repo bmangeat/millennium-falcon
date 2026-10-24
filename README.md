@@ -184,3 +184,59 @@ and `E` the number of routes. In practice the input is tiny and the computation 
   (whichever state is dequeued first by Dijkstra).
 - The Falcon can refuel an unlimited number of times on any planet along its path.
 - A route with `travelTime = 0` is considered invalid and is rejected at the repository layer.
+
+## AI-assisted development
+
+An AI coding assistant was leveraged across three main areas of the project:
+
+### 1 · Bootstrapping from the personal boilerplate
+
+Rather than starting from scratch, I adapted an existing TypeScript/Express boilerplate that I have
+refined over the years. The boilerplate already covers the full production ring: structured logging
+(pino), Zod-validated environment, layered architecture, ESLint/Prettier, Vitest, Docker multi-stage
+build, GitHub Actions CI.
+
+The AI's job was to translate the project-specific requirements into that established skeleton:
+
+- **Reading the Falcon config** — wiring `FALCON_CONFIG_PATH` into the config layer, Zod-validating
+  `autonomy`, `departure`, and `routes_db`, and resolving `routes_db` relative to the config file
+  when the path is not absolute.
+- **SQLite repository** — adapting the boilerplate data-access layer to use the built-in
+  `node:sqlite` module (no extra driver to compile) and loading the routes once at startup.
+- **`RouteFinderService` stub** — plugging the service interface into the controller with a
+  `501 Not Implemented` response while the algorithm was still being developed.
+
+This kept the scaffolding work minimal and let me focus immediately on the problem that actually
+matters: the route computation.
+
+### 2 · Algorithm review & cost control
+
+The **Dijkstra-over-augmented-state-space** algorithm is the computational core of the project, and
+getting it wrong — or letting it blow up in cost — would be the most consequential mistake. The AI
+reviewed the implementation with two concerns in mind:
+
+- **Correctness** — verifying that the _(planet, remaining\_fuel)_ state space correctly models
+  refuel decisions, that `bestArrivals` is populated on first visit (guaranteeing optimal cost from
+  Dijkstra), and that route reconstruction walks `previous` links faithfully.
+- **Cost control** — the state count is `V × A` (planets × autonomy + 1). With a naïve autonomy
+  value the space can grow unboundedly. The review introduced two guards:
+  - **`effectiveAutonomy` cap** — autonomy is silently capped to the sum of all edge weights in the
+    usable graph. Beyond that threshold every reachable planet is already reachable at full tank,
+    so extra fuel levels are redundant states.
+  - **`MAX_STATES` hard limit** — if the capped state count still exceeds 1 000 000 the constructor
+    throws early with an explicit message rather than silently hammering the event loop.
+
+These changes were then unit-tested and verified against the original statement example before being
+merged.
+
+### 3 · Testing & Documentation (time-saving on non-sensitive parts)
+
+Writing thorough test suites and comprehensive technical documentation is critical for production
+quality, but it is also repetitive and time-consuming. Because these areas are not sensitive business
+logic, AI was heavily utilized to speed up delivery:
+
+- **Test suite generation** — drafting repetitive edge cases, integration tests with `supertest`,
+  mock route datasets, and regression tests (bidirectional routing, insufficient fuel, unreachable planets,
+  autonomy validation).
+- **Documentation** — structuring and refining the README, documenting setup steps, Docker instructions,
+  HTTP status codes, and design rationale.
