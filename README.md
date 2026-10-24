@@ -1,0 +1,162 @@
+# Millennium Falcon API
+
+Back-end service that computes the fastest route for the Millennium Falcon to reach its destination
+(Endor), taking its limited autonomy and refuel stops into account.
+
+> **Status:** the HTTP layer, configuration, data access, observability and packaging are done.
+> The route computation (`RouteFinderService.findFastestRoute`) is still to be implemented
+> (it currently answers `501 Not Implemented`).
+
+## Quick start
+
+### With Docker (recommended)
+
+```bash
+docker compose up --build
+curl -X POST localhost:3000/compute -H 'content-type: application/json' -d '{"arrival":"Endor"}'
+```
+
+Or without Compose:
+
+```bash
+docker build -t millennium-falcon-api .
+docker run --rm -p 3000:3000 millennium-falcon-api
+```
+
+The image ships with the example mission. To use another one, mount a directory containing your
+`millennium-falcon.json` and routes database on `/app/config`:
+
+```bash
+docker run --rm -p 3000:3000 -v "$PWD/my-mission:/app/config:ro" millennium-falcon-api
+```
+
+`routes_db` can be absolute, or relative to the directory of `millennium-falcon.json`.
+
+### Local development
+
+Requires Node.js >= 22.13 and [pnpm](https://pnpm.io) (`corepack enable`).
+
+```bash
+cp .env.example .env
+pnpm install
+pnpm dev
+```
+
+## API
+
+Interactive documentation lives in the [`bruno/`](./bruno) collection (open the folder in
+[Bruno](https://www.usebruno.com) and select the `local` environment). Each request carries its own
+assertions and documentation.
+
+| Method | Path            | Description                                   |
+| ------ | --------------- | --------------------------------------------- |
+| POST   | `/compute`      | Fastest route from the departure to `arrival` |
+| GET    | `/health/live`  | Liveness probe                                |
+| GET    | `/health/ready` | Readiness probe (routes database reachable)   |
+
+### `POST /compute`
+
+```json
+{ "arrival": "Endor" }
+```
+
+```json
+{ "duration": 8, "route": ["Tatooine", "Hoth", "Endor"] }
+```
+
+Errors share one envelope: `{ "error": { "code": "...", "message": "...", "details": [...] } }`.
+
+| Status | Code                | When                                      |
+| ------ | ------------------- | ----------------------------------------- |
+| 400    | `VALIDATION_ERROR`  | Invalid payload (details list the issues) |
+| 400    | `BAD_REQUEST`       | Malformed JSON                            |
+| 404    | `NO_ROUTE_FOUND`    | Arrival unknown or unreachable            |
+| 413    | `PAYLOAD_TOO_LARGE` | Body larger than 10 kB                    |
+| 429    | `RATE_LIMITED`      | Too many requests                         |
+| 501    | `NOT_IMPLEMENTED`   | Computation not implemented yet           |
+
+## Configuration
+
+Mission file (`FALCON_CONFIG_PATH`, default `./config/millennium-falcon.json`):
+
+```json
+{ "autonomy": 6, "departure": "Tatooine", "routes_db": "universe.db" }
+```
+
+Environment variables (validated at startup, the process refuses to boot on invalid values):
+
+| Variable               | Default                           | Description                        |
+| ---------------------- | --------------------------------- | ---------------------------------- |
+| `PORT` / `HOST`        | `3000` / `0.0.0.0`                | Listen address                     |
+| `LOG_LEVEL`            | `info`                            | pino level (`silent` to `trace`)   |
+| `FALCON_CONFIG_PATH`   | `./config/millennium-falcon.json` | Mission file                       |
+| `CORS_ORIGINS`         | _(empty = CORS disabled)_         | Comma-separated allowed origins    |
+| `RATE_LIMIT_WINDOW_MS` | `60000`                           | Rate-limit window                  |
+| `RATE_LIMIT_MAX`       | `100`                             | Max requests per client and window |
+
+## Project structure
+
+```
+src/
+  main.ts                 composition root, graceful shutdown
+  app.ts                  Express app factory (no I/O, easy to test)
+  config/                 env + mission file loading and validation (Zod)
+  routes/                 URL -> controller wiring
+  controllers/            HTTP <-> service translation
+  services/               business logic (route computation)
+  repositories/           data access (SQLite, read-only)
+  domain/                 shared types
+  schemas/                request validation schemas
+  middlewares/            error handling, 404
+  lib/                    logger, helpers
+tests/                    Vitest suites (unit + HTTP integration with supertest)
+bruno/                    API collection
+config/                   example mission file + universe database
+```
+
+Dependencies point inwards: `routes -> controllers -> services -> repositories`. Controllers and
+services depend on interfaces (`RouteFinder`, `RoutesRepository`), concrete classes are wired only in
+`main.ts`.
+
+## Quality
+
+```bash
+pnpm lint            # ESLint (typescript-eslint strict, type-checked) + Prettier compatibility
+pnpm format:check    # Prettier
+pnpm typecheck       # tsc --noEmit
+pnpm test            # Vitest
+pnpm test:coverage   # with coverage report
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs format, lint, typecheck, tests with coverage, build
+and a dependency audit, then builds the Docker image and smoke-tests the running container.
+Dependabot keeps npm, Docker and Actions dependencies up to date.
+
+## Security and production readiness
+
+- `helmet` headers, `x-powered-by` removed, CORS disabled unless origins are explicitly allowed
+- Rate limiting, 10 kB body limit, strict request schemas (unknown fields rejected)
+- Errors never leak internals (generic 500), request ids propagated (`x-request-id`)
+- Structured JSON logs (pino) with sensitive headers redacted
+- Read-only database connection; container runs as non-root, read-only filesystem, all Linux
+  capabilities dropped, memory limit set
+- Multi-stage image on `node:slim`, production dependencies only, `HEALTHCHECK`, `init` process
+- Graceful shutdown on `SIGTERM`/`SIGINT` with a forced-exit timeout
+- Reproducible builds: lockfile enforced (`--frozen-lockfile`), pnpm version pinned
+
+## Design decisions
+
+- **SQLite via the built-in `node:sqlite` module** instead of a native driver or an ORM: the routes
+  database is a provided, read-only file whose path is only known at runtime. A built-in module means
+  nothing to compile in the image. Trade-off: the module is still flagged experimental in Node, which is
+  why access is isolated behind `RoutesRepository` (swapping the driver is a one-file change).
+- **Routes loaded once at startup** and validated: the dataset is small and read-only, so the request
+  path does no I/O and bad data fails fast at boot instead of at request time.
+- **Layered architecture** (routes, controllers, services, repositories): the right size for this
+  scope, with dependency injection to keep every layer testable in isolation.
+- **No authentication**: not part of the requirements, and it would add surface area without value here.
+
+### Route computation
+
+_To complete once implemented: algorithm, complexity, assumptions (e.g. case sensitivity of planet
+names, refuel rules), and edge cases covered by the tests._

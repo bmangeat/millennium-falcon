@@ -1,0 +1,20 @@
+meta {
+  name: Health - liveness
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/health/live
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq ok
+}
+
+docs {
+  The process is up. Used by the Docker HEALTHCHECK.
+}

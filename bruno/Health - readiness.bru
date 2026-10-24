@@ -1,0 +1,20 @@
+meta {
+  name: Health - readiness
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/health/ready
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq ready
+}
+
+docs {
+  Returns 503 when the routes database is not reachable.
+}
