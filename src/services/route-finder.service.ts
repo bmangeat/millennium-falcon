@@ -1,5 +1,5 @@
+import { computeFastestRoute } from '@/domain/fastest-route.js';
 import type { RouteRow, RouteResult } from '@/domain/route.js';
-import { NotImplementedError } from '@/errors.js';
 
 export interface RouteFinderOptions {
   autonomy: number;
@@ -20,7 +20,7 @@ export class RouteFinderService implements RouteFinder {
   }
 
   findFastestRoute(arrival: string): RouteResult | null {
-    // TODO: implement the fastest-route computation using this.routes and this.options.
-    throw new NotImplementedError(`Route computation to "${arrival}" is not implemented yet`);
+    const { departure, autonomy } = this.options;
+    return computeFastestRoute(this.routes, departure, arrival, autonomy);
   }
 }

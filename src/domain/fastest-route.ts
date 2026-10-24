@@ -42,7 +42,7 @@ function reconstructRoute(
   return route.reverse();
 }
 
-export function findFastestRoute(
+export function computeFastestRoute(
   rows: readonly RouteRow[],
   departure: string,
   arrival: string,
