@@ -4,8 +4,8 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { loadFalconConfig } from '../../src/config/falcon-config.js';
-import { ConfigError } from '../../src/errors.js';
+import { loadFalconConfig } from '@/config/falcon-config.js';
+import { ConfigError } from '@/errors.js';
 
 describe('loadFalconConfig', () => {
   let dir: string;

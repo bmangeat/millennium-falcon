@@ -2,10 +2,10 @@ import { pino } from 'pino';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createApp } from '../src/app.js';
-import { loadEnv } from '../src/config/env.js';
-import { NotImplementedError } from '../src/errors.js';
-import type { RouteFinder } from '../src/services/route-finder.service.js';
+import { createApp } from '@/app.js';
+import { loadEnv } from '@/config/env.js';
+import { NotImplementedError } from '@/errors.js';
+import type { RouteFinder } from '@/services/route-finder.service.js';
 
 const errorCode = (res: { body: unknown }): string =>
   (res.body as { error: { code: string } }).error.code;

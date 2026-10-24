@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildGraph } from '../../src/domain/graph.js';
+import { buildGraph } from '@/domain/graph.js';
 
 describe('Graph builder', () => {
   it('builds a graph from routes', () => {

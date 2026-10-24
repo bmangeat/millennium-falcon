@@ -1,5 +1,5 @@
-import type { RouteRow, RouteResult } from '../domain/route.js';
-import { NotImplementedError } from '../errors.js';
+import type { RouteRow, RouteResult } from '@/domain/route.js';
+import { NotImplementedError } from '@/errors.js';
 
 export interface RouteFinderOptions {
   autonomy: number;

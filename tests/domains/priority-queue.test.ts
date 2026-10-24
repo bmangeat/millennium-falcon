@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PriorityQueue } from '../../src/domain/priority-queue.js';
+import { PriorityQueue } from '@/domain/priority-queue.js';
 
 describe('Priority Queue', () => {
   it('can create and enqueue', () => {

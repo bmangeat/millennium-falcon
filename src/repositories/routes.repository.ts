@@ -3,9 +3,9 @@ import { DatabaseSync } from 'node:sqlite';
 
 import { z } from 'zod';
 
-import type { RouteRow } from '../domain/route.js';
-import { ConfigError } from '../errors.js';
-import { formatZodError } from '../lib/zod.js';
+import type { RouteRow } from '@/domain/route.js';
+import { ConfigError } from '@/errors.js';
+import { formatZodError } from '@/lib/zod.js';
 
 export interface RoutesRepository {
   findAll(): RouteRow[];

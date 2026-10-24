@@ -5,8 +5,8 @@ import { DatabaseSync } from 'node:sqlite';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ConfigError } from '../../src/errors.js';
-import { SqliteRoutesRepository } from '../../src/repositories/routes.repository.js';
+import { ConfigError } from '@/errors.js';
+import { SqliteRoutesRepository } from '@/repositories/routes.repository.js';
 
 const exampleDb = path.resolve(import.meta.dirname, '../../config/universe.db');
 

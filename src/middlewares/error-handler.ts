@@ -1,8 +1,8 @@
 import type { ErrorRequestHandler, Response } from 'express';
 import { ZodError } from 'zod';
 
-import { AppError } from '../errors.js';
-import { summarizeIssues } from '../lib/zod.js';
+import { AppError } from '@/errors.js';
+import { summarizeIssues } from '@/lib/zod.js';
 
 function sendError(
   res: Response,

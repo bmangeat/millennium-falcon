@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findFastestRoute } from '../../src/domain/fastest-route.js';
+import { findFastestRoute } from '@/domain/fastest-route.js';
 
 const rows = [
   { origin: 'Tatooine', destination: 'Dagobah', travelTime: 6 },

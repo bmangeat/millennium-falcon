@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-import { ConfigError } from '../errors.js';
-import { formatZodError } from '../lib/zod.js';
+import { ConfigError } from '@/errors.js';
+import { formatZodError } from '@/lib/zod.js';
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),

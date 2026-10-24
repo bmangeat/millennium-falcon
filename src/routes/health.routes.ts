@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { createHealthController } from '../controllers/health.controller.js';
+import { createHealthController } from '@/controllers/health.controller.js';
 
 export function createHealthRouter(isReady: () => boolean): Router {
   const controller = createHealthController(isReady);
