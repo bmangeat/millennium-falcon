@@ -3,10 +3,6 @@
 Back-end service that computes the fastest route for the Millennium Falcon to reach its destination
 (Endor), taking its limited autonomy and refuel stops into account.
 
-> **Status:** the HTTP layer, configuration, data access, observability and packaging are done.
-> The route computation (`RouteFinderService.findFastestRoute`) is still to be implemented
-> (it currently answers `501 Not Implemented`).
-
 ## Quick start
 
 ### With Docker (recommended)
